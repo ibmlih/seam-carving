@@ -1,3 +1,5 @@
+# Author: Eunsub Lee
+
 import cv2
 import numpy as np
 from matplotlib import pyplot as plt
@@ -92,6 +94,7 @@ def find_horizontal_seam(cumulative):
     return row_indices
 
 def view_seam(im, seam, direction):
+    im = np.copy(im)
     if direction == 'VERTICAL':
         for i in range(len(seam)):
             im[i][seam[i]][:] = [0,0,255]
@@ -132,24 +135,64 @@ def decrease_height(im, energy):
 
     return reduced_im, compute_energy_img(reduced_im)
 
+def compute_average(im, row, col):
+    rgb = [0, 0, 0]
+    count = 0
+    nrows, ncols = im.shape[0], im.shape[1]
+    
+    for dr in [-1, 0, 1]:
+        if row + dr < 0 or row + dr >= nrows:
+            continue
+        
+        for dc in [-1, 0, 1]:
+            if col + dc < 0 or col + dc >= ncols:
+                continue
+            for i in range(len(rgb)):
+                rgb[i] += im[row + dr][col + dc][i]
+            
+            count += 1
+    
+    return [color // count for color in rgb]
+
+def increase_width(im, energy):
+    nrows, ncols, ndepths = im.shape
+    reduced_im = np.uint8(np.zeros((nrows, ncols + 1, ndepths)))
+    cumulative = cumulative_min_energy_map(energy, 'VERTICAL')
+    vertical_seam = find_vertical_seam(cumulative)
+
+    view_seam(im, vertical_seam, 'VERTICAL')
+    
+    for row in range(nrows):
+        additional_col = vertical_seam[row]
+        
+        reduced_im[row][:additional_col][:] = im[row][:additional_col][:]
+        reduced_im[row][additional_col][:] = compute_average(im, row, additional_col)
+        reduced_im[row][additional_col+1:][:] = im[row][additional_col:][:]
+        
+    return reduced_im, compute_energy_img(reduced_im)
+
+def increase_height(im, energy):
+    pass
+    
 def main():
+    # parse arguments
     im_name = 'imgs/inputSeamCarvingPrague.jpg'
     im = cv2.imread(im_name)
     energy = compute_energy_img(im)
 
-    for i in range(5):
+    for i in range(30):
         print(i)
-        im, energy = decrease_height(im, energy)
+        im, energy = increase_width(im, energy)
     
     
     plt.imshow(cv2.cvtColor(im, cv2.COLOR_BGR2RGB))
 
-        
-    
 if __name__ == '__main__':
     fig, _ = plt.subplots()
     fig.subplots_adjust(left=0, bottom=0, right=1, top=1, wspace=0, hspace=0)
     plt.axis('off')
+    
     main()
+    
     plt.pause(1)
     plt.show()
