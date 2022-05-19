@@ -2,22 +2,14 @@ import cv2
 import numpy as np
 from matplotlib import pyplot as plt
 
-def display_img(im, title='image'):
-    plt.imshow(im, cmap='gray')
-    plt.show()
-    # cv2.imshow(title, im)
-    # cv2.waitKey(0)
-    # cv2.destroyAllWindows()
-
-def compute_energy_img(im_name):
-    im = cv2.imread(im_name)
-    gray_im = cv2.cvtColor(im, cv2.COLOR_BGR2GRAY)
+def compute_energy_img(im):
+    gray_im = cv2.cvtColor(np.uint8(im), cv2.COLOR_RGB2GRAY)
 
     x = np.array([[-1, 1]])
     y = np.array([[-1], [1]])
     
-    dx = cv2.filter2D(gray_im, cv2.CV_64F, x)
-    dy = cv2.filter2D(gray_im, cv2.CV_64F, y)
+    dx = cv2.filter2D(gray_im, -1, x)
+    dy = cv2.filter2D(gray_im, -1, y)
     energy = np.sqrt(dx ** 2 + dy ** 2)
     return energy
 
@@ -76,38 +68,88 @@ def find_vertical_seam(cumulative):
     return column_indices
 
 def find_horizontal_seam(cumulative):
-    pass
+    from collections import deque
+
+    nrows, ncols = cumulative.shape
+    row_indices = deque()
+    row_indices.appendleft(np.argmin(cumulative[:,ncols - 1]))
+    
+    for i in reversed(range(ncols - 1)):
+        col = cumulative[:,i]
+
+        best_index, index = row_indices[0], row_indices[0]
+        min_val = col[index]
+        
+        if index - 1 >= 0 and col[index - 1] < min_val:
+            best_index = index - 1
+            min_val = col[best_index]
+        if index + 1 < nrows and col[index + 1] < min_val:
+            best_index = index + 1
+            min_val = col[best_index]
+        
+        row_indices.appendleft(best_index)
+    
+    return row_indices
 
 def view_seam(im, seam, direction):
     if direction == 'VERTICAL':
         for i in range(len(seam)):
-            im[i][seam[i]][0] = 0
-            im[i][seam[i]][1] = 0
-            im[i][seam[i]][2] = 255
-
+            im[i][seam[i]][:] = [0,0,255]
     else:
-        pass
+        for i in range(len(seam)):
+            im[seam[i]][i][:] = [0,0,255]
 
-    cv2.imshow('image', im)
-    cv2.waitKey(0)
-    cv2.destroyAllWindows()
-    
+    plt.imshow(cv2.cvtColor(im, cv2.COLOR_BGR2RGB))
+    plt.pause(0.0000001)
+
 def decrease_width(im, energy):
-    pass
-    
-    return reduced_im, reduced_energy
+    nrows, ncols, ndepths = im.shape
+    reduced_im = np.uint8(np.zeros((nrows, ncols - 1, ndepths)))
+    cumulative = cumulative_min_energy_map(energy, 'VERTICAL')
+    vertical_seam = find_vertical_seam(cumulative)
+
+    view_seam(im, vertical_seam, 'VERTICAL')
+
+    for row in range(nrows):
+        skip_col = vertical_seam[row]
+        reduced_im[row][:skip_col][:] = im[row][:skip_col][:]
+        reduced_im[row][skip_col:][:] = im[row][skip_col + 1:][:]        
+
+    return reduced_im, compute_energy_img(reduced_im)
+
+def decrease_height(im, energy):
+    nrows, ncols, ndepths = im.shape
+    reduced_im = np.uint8(np.zeros((nrows - 1, ncols, ndepths)))
+    cumulative = cumulative_min_energy_map(energy, 'HORIZONTAL')
+    hori_seam = find_horizontal_seam(cumulative)
+
+    view_seam(im, hori_seam, 'HORIZONTAL')
+
+    for col in range(ncols):
+        skip_row = hori_seam[col]
+        reduced_im[:skip_row,col,:] = im[:skip_row,col,:]
+        reduced_im[skip_row:,col,:] = im[skip_row + 1:,col,:]
+
+    return reduced_im, compute_energy_img(reduced_im)
 
 def main():
     im_name = 'imgs/inputSeamCarvingPrague.jpg'
     im = cv2.imread(im_name)
-    
-    energy = compute_energy_img(im_name)
-    cumulative_energy_map = cumulative_min_energy_map(energy, 'VERTICAL')
-    vertical_seam = find_vertical_seam(cumulative_energy_map)
-    view_seam(im, vertical_seam, 'VERTICAL')
+    energy = compute_energy_img(im)
 
+    for i in range(5):
+        print(i)
+        im, energy = decrease_height(im, energy)
     
     
+    plt.imshow(cv2.cvtColor(im, cv2.COLOR_BGR2RGB))
+
+        
     
 if __name__ == '__main__':
+    fig, _ = plt.subplots()
+    fig.subplots_adjust(left=0, bottom=0, right=1, top=1, wspace=0, hspace=0)
+    plt.axis('off')
     main()
+    plt.pause(1)
+    plt.show()
