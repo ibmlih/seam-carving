@@ -222,7 +222,6 @@ def main():
     plt.savefig(args.out, bbox_inches='tight', pad_inches=0)
     plt.show()
 
-
 if __name__ == '__main__':    
     main()
 
