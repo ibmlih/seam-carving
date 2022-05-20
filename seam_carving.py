@@ -94,17 +94,16 @@ def find_horizontal_seam(cumulative):
     return row_indices
 
 def view_seam(im, seam, direction):
-    # TODO: draw on top of imshow
-    im = np.copy(im)
+    plt.clf()
+    plt.axis('off')
+
     if direction == 'VERTICAL':
-        for i in range(len(seam)):
-            im[i][seam[i]][:] = [0,0,255]
+        plt.plot(seam, [i for i in range(len(seam))], 'r')
     else:
-        for i in range(len(seam)):
-            im[seam[i]][i][:] = [0,0,255]
+        plt.plot([i for i in range(len(seam))], seam, 'r')
 
     plt.imshow(cv2.cvtColor(im, cv2.COLOR_BGR2RGB))
-    plt.pause(0.0001)
+    plt.pause(0.00001)
 
 def decrease_width(im, energy):
     nrows, ncols, ndepths = im.shape
@@ -191,6 +190,8 @@ def increase_height(im, energy):
     
 def main():
     import argparse
+    fig, ax = plt.subplots()
+    fig.subplots_adjust(left=0, bottom=0, right=1, top=1, wspace=0, hspace=0)
     
     parser = argparse.ArgumentParser()
     parser.add_argument('-im', help='Path to image', required=True)
@@ -199,7 +200,6 @@ def main():
     parser.add_argument('-dh', help='Change in height (in pixels)', type=int, default=0)
     args = parser.parse_args()
 
-    im_name = 'imgs/inputSeamCarvinPlague.jpg'
     im = cv2.imread(args.im)
     energy = compute_energy_img(im)
 
@@ -217,15 +217,13 @@ def main():
         for _ in range(-args.dh):
             im, energy = decrease_height(im, energy)
     
-    plt.imshow(cv2.cvtColor(im, cv2.COLOR_BGR2RGB))
-
-if __name__ == '__main__':
-    fig, _ = plt.subplots()
-    fig.subplots_adjust(left=0, bottom=0, right=1, top=1, wspace=0, hspace=0)
+    plt.clf()
     plt.axis('off')
-    
-    main()
-    
-    plt.pause(1)
+    plt.imshow(cv2.cvtColor(im, cv2.COLOR_BGR2RGB))
+    plt.savefig(args.out, bbox_inches='tight', pad_inches=0)
     plt.show()
-    # TODO:save figure
+
+
+if __name__ == '__main__':    
+    main()
+
