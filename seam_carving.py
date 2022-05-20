@@ -94,6 +94,7 @@ def find_horizontal_seam(cumulative):
     return row_indices
 
 def view_seam(im, seam, direction):
+    # TODO: draw on top of imshow
     im = np.copy(im)
     if direction == 'VERTICAL':
         for i in range(len(seam)):
@@ -103,7 +104,7 @@ def view_seam(im, seam, direction):
             im[seam[i]][i][:] = [0,0,255]
 
     plt.imshow(cv2.cvtColor(im, cv2.COLOR_BGR2RGB))
-    plt.pause(0.0000001)
+    plt.pause(0.0001)
 
 def decrease_width(im, energy):
     nrows, ncols, ndepths = im.shape
@@ -189,15 +190,32 @@ def increase_height(im, energy):
     return reduced_im, compute_energy_img(reduced_im)
     
 def main():
-    # parse arguments
-    im_name = 'imgs/inputSeamCarvingPrague.jpg'
-    im = cv2.imread(im_name)
+    import argparse
+    
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-im', help='Path to image', required=True)
+    parser.add_argument('-out', help='Name of output file', required=True)
+    parser.add_argument('-dw', help='Change in width (in pixels)', type=int, default=0)
+    parser.add_argument('-dh', help='Change in height (in pixels)', type=int, default=0)
+    args = parser.parse_args()
+
+    im_name = 'imgs/inputSeamCarvinPlague.jpg'
+    im = cv2.imread(args.im)
     energy = compute_energy_img(im)
 
-    for i in range(30):
-        print(i)
-        im, energy = increase_height(im, energy)
-    
+    if args.dw > 0:
+        for _ in range(args.dw):
+            im, energy = increase_width(im, energy)
+    else:
+        for _ in range(-args.dw):
+            im, energy = decrease_width(im, energy)
+            
+    if args.dh > 0:
+        for _ in range(args.dh):
+            im, energy = increase_height(im, energy)
+    else:
+        for _ in range(-args.dh):
+            im, energy = decrease_height(im, energy)
     
     plt.imshow(cv2.cvtColor(im, cv2.COLOR_BGR2RGB))
 
@@ -210,3 +228,4 @@ if __name__ == '__main__':
     
     plt.pause(1)
     plt.show()
+    # TODO:save figure
