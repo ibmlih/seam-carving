@@ -38,7 +38,7 @@ Seam이란 이미지에서 가장 흥미롭지 않은 줄을 의미합니다 (�
 
 ## 실행하는 법
 
-`pip3 install -r requirements.txt` 커멘드를 먼저 실행해서 필요한 패키지를 설치하세요.
+`pip3 install -r requirements.txt` 커맨드를 먼저 실행해서 필요한 패키지를 설치하세요.
 
 `python seam_carving.py -im <이미지 경로> -out <출력 이미지 이름> -dw <너비에 추가/제거할 픽셀 개수> -dh <높이에 추가/제거할 픽셀 개수>`
 
