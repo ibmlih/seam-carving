@@ -172,7 +172,21 @@ def increase_width(im, energy):
     return reduced_im, compute_energy_img(reduced_im)
 
 def increase_height(im, energy):
-    pass
+    nrows, ncols, ndepths = im.shape
+    reduced_im = np.uint8(np.zeros((nrows + 1, ncols, ndepths)))
+    cumulative = cumulative_min_energy_map(energy, 'HORIZONTAL')
+    hori_seam = find_horizontal_seam(cumulative)
+
+    view_seam(im, hori_seam, 'HORIZONTAL')
+    
+    for col in range(ncols):
+        additional_row = hori_seam[col]
+        
+        reduced_im[:additional_row, col, :] = im[:additional_row, col, :]
+        reduced_im[additional_row, col, :] = compute_average(im, additional_row, col)
+        reduced_im[additional_row + 1:, col, :] = im[additional_row:, col, :]
+        
+    return reduced_im, compute_energy_img(reduced_im)
     
 def main():
     # parse arguments
@@ -182,7 +196,7 @@ def main():
 
     for i in range(30):
         print(i)
-        im, energy = increase_width(im, energy)
+        im, energy = increase_height(im, energy)
     
     
     plt.imshow(cv2.cvtColor(im, cv2.COLOR_BGR2RGB))
