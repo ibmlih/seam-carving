@@ -5,7 +5,7 @@ import numpy as np
 from matplotlib import pyplot as plt
 
 def compute_energy_img(im):
-    gray_im = cv2.cvtColor(np.uint8(im), cv2.COLOR_RGB2GRAY)
+    gray_im = cv2.cvtColor(im, cv2.COLOR_RGB2GRAY)
 
     x = np.array([[-1, 1]])
     y = np.array([[-1], [1]])
@@ -63,7 +63,6 @@ def find_vertical_seam(cumulative):
             min_val = row[best_index]
         if index + 1 < ncols and row[index + 1] < min_val:
             best_index = index + 1
-            min_val = row[best_index]
         
         column_indices.appendleft(best_index)
     
@@ -87,7 +86,6 @@ def find_horizontal_seam(cumulative):
             min_val = col[best_index]
         if index + 1 < nrows and col[index + 1] < min_val:
             best_index = index + 1
-            min_val = col[best_index]
         
         row_indices.appendleft(best_index)
     
@@ -98,9 +96,9 @@ def view_seam(im, seam, direction):
     plt.axis('off')
 
     if direction == 'VERTICAL':
-        plt.plot(seam, [i for i in range(len(seam))], 'r')
+        plt.plot(seam, range(len(seam)), 'r')
     else:
-        plt.plot([i for i in range(len(seam))], seam, 'r')
+        plt.plot(range(len(seam)), seam, 'r')
 
     plt.imshow(cv2.cvtColor(im, cv2.COLOR_BGR2RGB))
     plt.pause(0.00001)
@@ -135,23 +133,24 @@ def decrease_height(im, energy):
 
     return reduced_im, compute_energy_img(reduced_im)
 
-def compute_average(im, row, col):
+def compute_average(im, row, col, direction):
     rgb = [0, 0, 0]
-    count = 0
     nrows, ncols = im.shape[0], im.shape[1]
+    count = 0
     
-    for dr in [-1, 0, 1]:
-        if row + dr < 0 or row + dr >= nrows:
-            continue
-        
+    if direction == 'VERTICAL':
         for dc in [-1, 0, 1]:
-            if col + dc < 0 or col + dc >= ncols:
-                continue
-            for i in range(len(rgb)):
-                rgb[i] += im[row + dr][col + dc][i]
-            
-            count += 1
-    
+            if col + dc >= 0 and col + dc < ncols:
+                for i in range(len(rgb)):
+                    rgb[i] += im[row][col + dc][i]
+                count += 1
+    else:
+        for dr in [-1, 0, 1]:
+            if row + dr >= 0 and row + dr < nrows:
+                for i in range(len(rgb)):
+                    rgb[i] += im[row + dr][col][i]
+                count += 1
+                    
     return [color // count for color in rgb]
 
 def increase_width(im, energy):
@@ -166,7 +165,7 @@ def increase_width(im, energy):
         additional_col = vertical_seam[row]
         
         reduced_im[row][:additional_col][:] = im[row][:additional_col][:]
-        reduced_im[row][additional_col][:] = compute_average(im, row, additional_col)
+        reduced_im[row][additional_col][:] = compute_average(im, row, additional_col, 'VERTICAL')
         reduced_im[row][additional_col+1:][:] = im[row][additional_col:][:]
         
     return reduced_im, compute_energy_img(reduced_im)
@@ -183,14 +182,14 @@ def increase_height(im, energy):
         additional_row = hori_seam[col]
         
         reduced_im[:additional_row, col, :] = im[:additional_row, col, :]
-        reduced_im[additional_row, col, :] = compute_average(im, additional_row, col)
+        reduced_im[additional_row, col, :] = compute_average(im, additional_row, col, 'HORIZONTAL')
         reduced_im[additional_row + 1:, col, :] = im[additional_row:, col, :]
         
     return reduced_im, compute_energy_img(reduced_im)
     
 def main():
     import argparse
-    fig, ax = plt.subplots()
+    fig, _ = plt.subplots()
     fig.subplots_adjust(left=0, bottom=0, right=1, top=1, wspace=0, hspace=0)
     
     parser = argparse.ArgumentParser()
